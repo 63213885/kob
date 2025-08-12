@@ -1,0 +1,149 @@
+import { AcGameObject } from "./AcGameObject";
+import { Cell } from "./Cell";
+
+export class Snake extends AcGameObject {
+    constructor(info, gamemap) {
+        super();
+
+        this.id = info.id;
+        this.color = info.color;
+        this.gamemap = gamemap;
+
+        this.cells = [new Cell(info.r, info.c)]; // 存放蛇的身体，cells[0]存放蛇头
+        this.next_cell = null; // 下一步的目的地
+
+        this.speed = 5;
+        this.direction = -1; // -1无指令，0,1,2,3表示上下左右
+        this.status = "idle"; // idle静止，move移动，dle死亡
+
+        this.to = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+        this.step = 0; // 回合数
+
+        this.eps = 1e-2;
+
+        this.eye_direction = 0;
+        if (this.id == 1) {
+            this.eye_direction = 2; // 左下角的蛇头朝上，右下角的蛇头朝下
+        }
+
+        this.eye_delta = [[], []]
+        this.eye_delta[0] = [ // 蛇左眼眼睛不同方向的偏移量
+            [-1, -1],
+            [1, -1],
+            [1, 1],
+            [-1, 1]
+        ];
+        this.eye_delta[1] = [ // 蛇右眼眼睛不同方向的偏移量
+            [1, -1],
+            [1, 1],
+            [-1, 1],
+            [-1, -1]
+        ];
+    }
+
+    start() {
+
+    }
+
+    set_direction(d) {
+        this.direction = d;
+    }
+
+    check_tail_increasing() { // 检测当前回合，蛇的长度是否增加
+        if (this.step <= 10) return true;
+        if (this.step % 3 === 1) return true;
+        return false;
+    }
+
+    next_step() { // 将蛇的状态变为走下一步
+        const d = this.direction;
+        this.eye_direction = d;
+        this.next_cell = new Cell(this.cells[0].r + this.to[d][0], this.cells[0].c + this.to[d][1]);
+        this.direction = -1;
+        this.status = "move";
+        this.step += 1;
+
+        const k = this.cells.length;
+        for (let i = k; i > 0; i--) {
+            this.cells[i] = JSON.parse(JSON.stringify(this.cells[i - 1]));
+        }
+
+        if (!this.gamemap.check_valid(this.next_cell)) { // 撞！
+            this.status = "die";
+        }
+    }
+
+    update_move() {
+        const dx = this.next_cell.x - this.cells[0].x;
+        const dy = this.next_cell.y - this.cells[0].y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < this.eps) {
+            this.cells[0] = this.next_cell;
+            this.next_cell = null;
+            this.status = "idle";
+
+            if (!this.check_tail_increasing()) {
+                this.cells.pop();
+            }
+        } else {
+            const move_distance = this.speed * this.timedelta / 1000;
+            this.cells[0].x += move_distance * dx / distance;
+            this.cells[0].y += move_distance * dy / distance;
+
+            if (!this.check_tail_increasing()) {
+                const k = this.cells.length;
+                const tail = this.cells[k - 1], tail_target = this.cells[k - 2];
+                const tail_dx = tail_target.x - tail.x;
+                const tail_dy = tail_target.y - tail.y;
+                tail.x += move_distance * tail_dx / distance;
+                tail.y += move_distance * tail_dy / distance;
+            }
+        }
+    }
+
+    update() {
+        if (this.status === 'move') {
+            this.update_move();
+        }
+        this.rander();
+    }
+
+    rander() {
+        const L = this.gamemap.L;
+        const ctx = this.gamemap.ctx;
+
+        ctx.fillStyle = this.color;
+        if (this.status === "die") {
+            ctx.fillStyle = "white";
+        }
+
+        for (const cell of this.cells) {
+            ctx.beginPath();
+            ctx.arc(cell.x * L, cell.y * L, L / 2 * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        for (let i = 1; i < this.cells.length; i++) {
+            const a = this.cells[i - 1], b = this.cells[i];
+            if (Math.abs(a.x - b.x) < this.eps && Math.abs(a.y - b.y) < this.eps) {
+                continue;
+            }
+            if (Math.abs(a.x - b.x) < this.eps) {
+                ctx.fillRect((a.x - 0.4) * L, Math.min(a.y, b.y) * L, L * 0.8, Math.abs(a.y - b.y) * L);
+            } else {
+                ctx.fillRect(Math.min(a.x, b.x) * L, (a.y - 0.4) * L, Math.abs(a.x - b.x) * L, L * 0.8);
+            }
+        }
+
+        // 画蛇点睛
+        ctx.fillStyle = "black";
+        for (let i = 0; i < 2; i++) {
+            const eye_x = (this.cells[0].x + this.eye_delta[i][this.eye_direction][0] * 0.15) * L;
+            const eye_y = (this.cells[0].y + this.eye_delta[i][this.eye_direction][1] * 0.15) * L;
+            ctx.beginPath();
+            ctx.arc(eye_x, eye_y, L * 0.05, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+}

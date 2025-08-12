@@ -1,4 +1,5 @@
 import { AcGameObject } from "./AcGameObject";
+import { Snake } from "./Snake";
 import { Wall } from "./Wall";
 
 export class GameMap extends AcGameObject {
@@ -10,10 +11,15 @@ export class GameMap extends AcGameObject {
         this.L = 0;
 
         this.rows = 13;
-        this.cols = 13;
+        this.cols = 14;
 
         this.inner_walls_count = 20;
         this.walls = [];
+
+        this.snakes = [
+            new Snake({ id: 0, color: "#4275E4", r: this.rows - 2, c: 1 }, this),
+            new Snake({ id: 1, color: "#F7454B", r: 1, c: this.cols - 2 }, this)
+        ];
     }
 
     check_connectivity(g, sx, sy, tx, ty) {
@@ -52,12 +58,12 @@ export class GameMap extends AcGameObject {
             for (let j = 0; j < 1000; j++) {
                 let r = parseInt(Math.random() * this.rows);
                 let c = parseInt(Math.random() * this.cols);
-                if (g[r][c] || g[c][r]) continue;
+                if (g[r][c] || g[this.rows - r - 1][this.cols - c - 1]) continue;
                 if (r == this.rows - 2 && c == 1 || r == 1 && c == this.cols - 2) {
                     continue;
                 }
 
-                g[r][c] = g[c][r] = true;
+                g[r][c] = g[this.rows - r - 1][this.cols - c - 1] = true;
                 break;
             }
         }
@@ -76,12 +82,32 @@ export class GameMap extends AcGameObject {
         return true;
     }
 
+    add_listening_events() {
+        this.ctx.canvas.focus();
+
+        const key_to = [
+            ['w', 'd', 's', 'a'],
+            ['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft']
+        ];
+
+        this.ctx.canvas.addEventListener("keydown", e => {
+            for (let i = 0; i < 2; i++) {
+                for (let j = 0; j < 4; j++) {
+                    if (e.key === key_to[i][j]) {
+                        this.snakes[i].set_direction(j);
+                    }
+                }
+            }
+        });
+    }
+
     start() {
         for (let i = 0; i < 1000; i++) {
             if (this.create_walls()) {
                 break;
             }
         }
+        this.add_listening_events();
     }
 
     update_size() {
@@ -90,8 +116,46 @@ export class GameMap extends AcGameObject {
         this.ctx.canvas.height = this.L * this.rows;
     }
 
+    check_ready() { // 判断两条蛇是否都准备好下一回合
+        for (const snake of this.snakes) {
+            if (snake.status !== "idle") return false;
+            if (snake.direction === -1) return false;
+        }
+        return true;
+    }
+
+    next_step() { // 让两条蛇进入下一回合
+        for (const snake of this.snakes) {
+            snake.next_step();
+        }
+    }
+
+    check_valid(cell) { // 检测目标位置是否合法（没有撞到两条蛇的身体和障碍物）
+        for (const wall of this.walls) {
+            if (cell.r === wall.r && cell.c === wall.c) {
+                return false;
+            }
+        }
+
+        for (const snake of this.snakes) {
+            let k = snake.cells.length;
+            if (!snake.check_tail_increasing()) {
+                k -= 1;
+            }
+            for (let i = 0; i < k; i++) {
+                if (cell.r == snake.cells[i].r && cell.c == snake.cells[i].c) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     update() {
         this.update_size();
+        if (this.check_ready()) {
+            this.next_step();
+        }
         this.render();
     }
 
