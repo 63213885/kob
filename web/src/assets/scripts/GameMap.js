@@ -46,10 +46,14 @@ export class GameMap extends AcGameObject {
         ];
 
         this.ctx.canvas.addEventListener("keydown", e => {
-            for (let i = 0; i < 2; i++) {
+            for (let i = 0; i < 1; i++) {
                 for (let j = 0; j < 4; j++) {
                     if (e.key === key_to[i][j]) {
-                        this.snakes[i].set_direction(j);
+                        // this.snakes[i].set_direction(j);
+                        this.store.state.pk.socket.send(JSON.stringify({
+                            event: "move",
+                            direction: j
+                        }));
                     }
                 }
             }
