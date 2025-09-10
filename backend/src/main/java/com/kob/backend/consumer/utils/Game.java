@@ -4,11 +4,14 @@ import com.alibaba.fastjson.JSONObject;
 import com.kob.backend.consumer.WebSocketServer;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
+@Slf4j
 public class Game extends Thread {
     private final Integer rows;
     private final Integer cols;
@@ -120,7 +123,7 @@ public class Game extends Thread {
             e.printStackTrace();
         }
 
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 100; i++) { // 10s内 要有操作
             try {
                 Thread.sleep(100);
                 lock.lock();
@@ -128,7 +131,7 @@ public class Game extends Thread {
                     if (nextStepA != null && nextStepB != null) {
                         playerA.getSteps().add(nextStepA);
                         playerB.getSteps().add(nextStepB);
-                        nextStepA = nextStepB = null;
+                    //    nextStepA = nextStepB = null; // 太蠢了
                         return true;
                     }
                 } finally {
@@ -141,9 +144,45 @@ public class Game extends Thread {
         return false;
     }
 
-    private void judge() { // 判断两名玩家下一步操作是否合法
+    private boolean check_valid(List<Cell> cellsA, List<Cell> cellsB) {
+        Cell cell = cellsA.get(cellsA.size() - 1);
+        if (g[cell.x][cell.y] == 1) {
+            return false;
+        }
 
+        for (int i = 0; i < cellsA.size() - 1; i++) {
+            if (cellsA.get(i).x == cell.x && cellsA.get(i).y == cell.y) {
+                return false;
+            }
+        }
+        for (int i = 0; i < cellsB.size(); i++) {
+            if (cellsB.get(i).x == cell.x && cellsB.get(i).y == cell.y) {
+                return false;
+            }
+        }
+
+        return true;
     }
+
+    private void judge() { // 判断两名玩家下一步操作是否合法
+        List<Cell> cellsA = playerA.getCells();
+        List<Cell> cellsB = playerB.getCells();
+
+        boolean validA = check_valid(cellsA, cellsB);
+        boolean validB = check_valid(cellsB, cellsA);
+        if (!validA || !validB) {
+            status = "finished";
+
+            if (!validA && !validB) {
+                loser = "all";
+            } else if (!validA) {
+                loser = "A";
+            } else {
+                loser = "B";
+            }
+        }
+    }
+
     private void sendAllMessage(String message) { // 向两个Client发送信息
         WebSocketServer.users.get(playerA.getId()).sendMessage(message);
         WebSocketServer.users.get(playerB.getId()).sendMessage(message);
@@ -155,6 +194,9 @@ public class Game extends Thread {
             resp.put("event", "move");
             resp.put("a_direction", nextStepA);
             resp.put("b_direction", nextStepB);
+
+            log.info("{}", resp.toJSONString());
+
             sendAllMessage(resp.toJSONString());
             nextStepA = nextStepB = null;
         } finally {

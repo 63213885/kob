@@ -4,20 +4,25 @@ import com.kob.backend.pojo.User;
 import com.kob.backend.service.impl.utils.UserDetailsImpl;
 import com.kob.backend.service.user.account.LoginService;
 import com.kob.backend.utils.JwtUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
+@Slf4j
 public class LoginServiceImpl implements LoginService {
 
     @Autowired
     private AuthenticationManager authenticationManager;
+//    @Autowired
+//    private PasswordEncoder passwordEncoder;
 
     @Override
     public Map<String, String> getToken(String username, String password) {
@@ -39,6 +44,7 @@ public class LoginServiceImpl implements LoginService {
         map.put("error_message", "success");
         map.put("token", jwt);
 
+        // log.info("passwordEncoder.encode 密码: {}", passwordEncoder.encode("pyxc"));
         return map;
     }
 }
