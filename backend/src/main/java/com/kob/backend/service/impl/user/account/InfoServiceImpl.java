@@ -16,7 +16,7 @@ import java.util.Map;
 public class InfoServiceImpl implements InfoService {
     @Override
     public Map<String, String> getInfo() {
-        log.info("1111111111111111111111111111111111111");
+    //    log.info("1111111111111111111111111111111111111");
         UsernamePasswordAuthenticationToken authentication =
                 (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
 
