@@ -44,7 +44,7 @@ public class LoginServiceImpl implements LoginService {
         map.put("error_message", "success");
         map.put("token", jwt);
 
-        // log.info("passwordEncoder.encode 密码: {}", passwordEncoder.encode("pyxc"));
+//        log.info("passwordEncoder.encode 密码: {}", passwordEncoder.encode("pyxc"));
         return map;
     }
 }
