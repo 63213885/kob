@@ -23,8 +23,8 @@
         <!-- https://mvnrepository.com/artifact/org.jooq/joor-java-8 -->
         <dependency>
             <groupId>org.jooq</groupId>
-            <artifactId>joor-java-8</artifactId>
-            <version>0.9.12</version>
+            <artifactId>joor</artifactId>
+            <version>0.9.14</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->

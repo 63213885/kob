@@ -27,6 +27,7 @@ public class Player {
         List<Cell> res = new ArrayList<>();
         int[][] to = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
         int x = sx, y = sy;
+        res.add(new Cell(x, y));
         int step = 0;
         for (int d : steps) {
             x += to[d][0];
